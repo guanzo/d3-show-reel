@@ -1,4 +1,6 @@
-The unofficial sequel to the first d3 showreel: https://bl.ocks.org/mbostock/1256572
+The unofficial sequel to the first d3 showreel: https://bl.ocks.org/guanzo/cda716d75831841ed00a09e6630d26a6
+
+Original showreel: https://bl.ocks.org/mbostock/1256572
 
 * treemap
 * bubble chart
