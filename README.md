@@ -7,4 +7,4 @@ Original showreel: https://bl.ocks.org/mbostock/1256572
 * circle pack
 * radial node-link diagram
 
-As with the original showreel, these visualizations aren't meant to be meaningful. They're made to showcase D3's ability to produce beautiful visualizations with simple, declarative code.
+As with the original showreel, these visualizations aren't meant to be meaningful. They're made to showcase D3's ability to produce beautiful, dynamic visualizations with simple, declarative code.
