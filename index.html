@@ -48,14 +48,17 @@
         <svg></svg>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.11.0/d3.min.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
     <script>
         var svg = d3.select('svg'),
             svgNode = svg.node().getBoundingClientRect(),
             width = svgNode.width,
             height = svgNode.height,
             duration = 2000,
-            colorNameScale = d3.scaleOrdinal(d3.schemeCategory20),
-            colorDepthScale = d3.scaleSequential(d3.interpolateViridis).domain([0, 4])
+            delay = 500,
+            colorCategoryScale = d3.scaleOrdinal(d3.schemeCategory20),
+            colorDepthScale,
+            colorSchemes = ['Viridis','Inferno','Magma','Plasma','Warm','Cool', 'Blues','BrBG','BuGn','BuPu','GnBu','Greens','Greys','Oranges','OrRd','PiYG','PRGn','PuBu','PuBuGn','PuOr','PuRd','Purples','RdBu','RdGy','RdPu','RdYlBu','RdYlGn','Reds','Spectral','YlGn','YlGnBu','YlOrBr','YlOrRd']
 
         svg = svg.append('g')
 
@@ -66,6 +69,9 @@
         });
 
         function showreel(flare) {
+            let colorScheme = colorSchemes[Math.floor(Math.random() * colorSchemes.length)]
+            colorDepthScale = d3.scaleSequential(d3[`interpolate${colorScheme}`]).domain([0, 4]),
+            
             treeMap(flare)
                 .then(changeRectToCirc)
                 .then(() => bubbleChart(flare))
@@ -103,7 +109,7 @@
                     .attr("id", d => d.data.name)
                     .attr("width", d => d.x1 - d.x0)
                     .attr("height", d => d.y1 - d.y0)
-                    .attr("fill", d => colorNameScale(d.parent.data.name));
+                    .attr("fill", d => colorCategoryScale(d.parent.data.name));
 
                 cell.transition().duration((d, i) => Math.random() * (1000 - 500) + 500)
                     .delay((d, i) => Math.random() * (1000 - 100) + 100)
@@ -142,13 +148,13 @@
                     .attr('ry', '5px')
                     .call(endAll, replace)
 
-
+                let radius = 5
                 function replace() {
                     node.append('circle')
-                        .attr('r', 5)
-                        .attr("cx", d => (d.x1 - d.x0) / 2 + 5)
-                        .attr("cy", d => (d.y1 - d.y0) / 2 + 5)
-                        .attr("fill", d => colorNameScale(d.parent.data.name))
+                        .attr('r', radius)
+                        .attr("cx", d => (d.x1 - d.x0) / 2 + radius)
+                        .attr("cy", d => (d.y1 - d.y0) / 2 + radius)
+                        .attr("fill", d => colorCategoryScale(d.parent.data.name))
                     node.select('rect').remove()
 
                     resolve()
@@ -179,10 +185,8 @@
                     children: flatData
                 }).sum(d => d.size)
 
-                let packData = pack(root)
-
                 var node = svg.selectAll(".node")
-                    .data(packData.leaves(), d => d.data.name)
+                    .data(pack(root).leaves(), d => d.data.name)
 
                 //node.append('text').text(d=>d.data.name)
 
@@ -195,7 +199,7 @@
                     .attr("r", d => d.r)
                     .attr("cx", 0)
                     .attr("cy", 0)
-                    .call(endAll, () => setTimeout(resolve, 500));
+                    .call(endAll, () => setTimeout(resolve, delay));
             })
         }
 
@@ -267,7 +271,7 @@
                 var node = svg.selectAll(".node")
                     .data(root.descendants(), d => d.data.name)
                     .attr("class", d => "node" + (d.children ? " node--internal" : " node--leaf"))
-
+                
                 node.transition()
                     .duration(duration)
                     .attr("transform", d => "translate(" + radialPoint(d.x, d.y) + ")")
@@ -298,7 +302,7 @@
                             .delay(d => d.source.depth * pathDuration)
                             .ease(d3.easeLinear)
                             .attr("stroke-dashoffset", 0)
-                            .call(endAll, () => setTimeout(resolve, 500));
+                            .call(endAll, () => setTimeout(resolve, delay));
                     }
             })
 
