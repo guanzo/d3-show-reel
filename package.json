@@ -1,0 +1,15 @@
+{
+  "name": "d3showreel",
+  "version": "1.0.0",
+  "description": "The unofficial sequel to the first d3 showreel: https://bl.ocks.org/guanzo/cda716d75831841ed00a09e6630d26a6",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.16.2"
+  }
+}

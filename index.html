@@ -59,7 +59,7 @@
             colorCategoryScale = d3.scaleOrdinal(d3.schemeCategory20),
             colorDepthScale,
             colorSchemes = ['Viridis','Inferno','Magma','Plasma','Warm','Cool', 'Blues','BrBG','BuGn','BuPu','GnBu','Greens','Greys','Oranges','OrRd','PiYG','PRGn','PuBu','PuBuGn','PuOr','PuRd','Purples','RdBu','RdGy','RdPu','RdYlBu','RdYlGn','Reds','Spectral','YlGn','YlGnBu','YlOrBr','YlOrRd']
-
+            
         svg = svg.append('g')
 
         d3.json("flare.json", function(error, flare) {
@@ -68,18 +68,18 @@
             showreel(flare)
         });
 
-        function showreel(flare) {
+        async function showreel(flare) {
             let colorScheme = colorSchemes[Math.floor(Math.random() * colorSchemes.length)]
             colorDepthScale = d3.scaleSequential(d3[`interpolate${colorScheme}`]).domain([0, 4]),
             
-            treeMap(flare)
-                .then(changeRectToCirc)
-                .then(() => bubbleChart(flare))
-                .then(() => circlePack(flare))
-                .then(shrink)
-                .then(() => radialTree(flare))
-                .then(endShowreel)
-                .then(() => showreel(flare))
+            await treeMap(flare)
+            await changeRectToCirc()
+            await bubbleChart(flare)
+            await circlePack(flare)
+            await shrink()
+            await radialTree(flare)
+            await endShowreel()
+            showreel(flare)
         }
 
         function treeMap(flare) {
@@ -138,27 +138,23 @@
                 node.select('rect')
                     .attr('rx', '0')
                     .attr('ry', '0')
-                    .transition().duration(duration / 3).ease(d3.easeCubicIn)
+                    .transition().duration(duration * .5).ease(d3.easeCubicIn)
                     .attr("x", d => (d.x1 - d.x0) / 2)
                     .attr("y", d => (d.y1 - d.y0) / 2)
                     .attr('width', '10px')
                     .attr('height', '10px')
-                    .transition().duration(duration / 4).ease(d3.easeCubicOut)
-                    .attr('rx', '5px')
-                    .attr('ry', '5px')
-                    .call(endAll, replace)
+                    .remove()
 
-                let radius = 5
-                function replace() {
+                setTimeout(()=>{
+                    var radius = 5
                     node.append('circle')
                         .attr('r', radius)
                         .attr("cx", d => (d.x1 - d.x0) / 2 + radius)
                         .attr("cy", d => (d.y1 - d.y0) / 2 + radius)
                         .attr("fill", d => colorCategoryScale(d.parent.data.name))
-                    node.select('rect').remove()
 
                     resolve()
-                }
+                },duration * .35)
 
             })
         }
@@ -188,18 +184,22 @@
                 var node = svg.selectAll(".node")
                     .data(pack(root).leaves(), d => d.data.name)
 
-                //node.append('text').text(d=>d.data.name)
-
-                node.transition()
-                    .duration(duration)
-                    .delay((d, i) => i * 2.5)
-                    .style('opacity', 1)
-                    .attr("transform", d => "translate(" + d.x + "," + d.y + ")")
+                node.transition('grow')
                     .select('circle')
+                    .transition().duration(duration * .5).ease(d3.easeCubicOut)
                     .attr("r", d => d.r)
-                    .attr("cx", 0)
-                    .attr("cy", 0)
-                    .call(endAll, () => setTimeout(resolve, delay));
+                    
+                setTimeout(()=>{
+                    
+                    node.transition('move')
+                            .duration(duration)
+                            .attr("transform", d => "translate(" + d.x + "," + d.y + ")")
+                    node.select('circle')
+                        .transition().duration(duration)
+                        .attr("cx", 0)
+                        .attr("cy", 0)
+                        .call(endAll, () => setTimeout(resolve, delay))
+                },duration * .35)
             })
         }
 
@@ -221,11 +221,14 @@
                     .attr("transform", d => "translate(" + d.x + "," + d.y + ")")
                 nodeEnter.append("circle")
                     .attr("r", d => d.r)
-                    .style('stroke', 'transparent')
-                    .style('stroke-width', '1.5px')
-                    .style('fill', 'transparent')
+                    .style("fill", d => colorDepthScale(d.depth))
+                    .style('opacity',0)
 
-                node = node.merge(nodeEnter).order()
+                node = node.merge(nodeEnter)
+                    .order()
+                    .attr("class", d => {
+                        return "node" + (!d.parent ? " node--root" : (d.children ? " node--internal" : " node--leaf"))
+                    })
 
                 node.transition()
                     .duration(duration)
@@ -233,20 +236,22 @@
                     .select('circle')
                     .attr("r", d => d.r)
                     .style("fill", d => colorDepthScale(d.depth))
-                    .call(endAll, revealParents)
-
-                function revealParents() {
-                    nodeEnter.selectAll('circle')
-                        .transition()
-                        .duration(duration / 2)
-                        .style('fill', d => colorDepthScale(d.depth))
-                        .call(endAll, resolve);
-                }
+                    .style('opacity',1)
+                    .call(endAll, () => setTimeout(resolve, delay))
             })
         }
 
         function shrink() {
             return new Promise(resolve => {
+                
+                svg.select('.node--root circle')
+                    .style('stroke','#333')
+                    .style('stroke-width',0.5)
+                    .style('stroke-opacity',0)
+                    .transition('opacity')
+                    .duration(duration)
+                    .style('stroke-opacity',0.5)
+
                 svg.selectAll('.node circle')
                     .transition()
                     .duration(duration / 2)
@@ -263,15 +268,14 @@
                     .size([2 * Math.PI, 325])
                     .separation((a, b) => (a.parent == b.parent ? 1 : 2) / a.depth);
 
-                root = tree(root);
+                tree(root);
 
                 svg.transition().duration(duration)
                     .attr('transform', `translate(${width/2} ${height/2})`)
 
                 var node = svg.selectAll(".node")
                     .data(root.descendants(), d => d.data.name)
-                    .attr("class", d => "node" + (d.children ? " node--internal" : " node--leaf"))
-                
+
                 node.transition()
                     .duration(duration)
                     .attr("transform", d => "translate(" + radialPoint(d.x, d.y) + ")")
